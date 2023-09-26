@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scheduler</title>
+    <style>
+        body {
+            background-color: #333;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            background-image: url('https://assets.stickpng.com/thumbs/61447ac15953a50004ee16cd.png');
+            background-repeat: no-repeat;
+            background-position: top right;
+            padding-top: 150px; /* Adjust this value to position content */
+            text-align: left; /* Align content to the left */
+        }
+
+        .header {
+            text-align: center;
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .tab {
+            cursor: pointer;
+            padding: 10px 20px;
+            background-color: #444;
+            color: #fff;
+            margin-right: 10px;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .tab.active {
+            background-color: #333;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #555;
+            border-radius: 0 0 5px 5px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .name-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .name-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            padding: 5px;
+            background-color: #444;
+            border-radius: 5px;
+        }
+
+        .name-list li .remove-button {
+            background-color: #FF0000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .name-list li .remove-button:hover {
+            background-color: #CC0000;
+        }
+
+        .suggested-time {
+            background-color: #444;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .suggested-time label {
+            display: block;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .suggested-time input[type="datetime-local"] {
+            width: 50%;
+            padding: 5px;
+        }
+
+        .name-section {
+            margin-top: 20px;
+        }
+
+        .name-section h3 {
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .primary-list, .backup-list {
+            background-color: #555;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        D2 Scheduler
+    </div>
+    <ul class="tabs">
+        <li class="tab" onclick="showTab('earlyRaid')">Early Raid</li>
+        <li class="tab" onclick="showTab('lateRaid')">Late Raid</li>
+        <li class="tab" onclick="showTab('sundayRaid')">Sunday Raid</li>
+    </ul>
+    <div id="earlyRaid" class="tab-content active">
+        <h2>Early Raid Details</h2>
+        <div class="suggested-time">
+            <label for="earlyRaidTime">Suggested Start Time:</label>
+            <input type="datetime-local" id="earlyRaidTime" onchange="updateSelectedTime('earlyRaidTime', 'Early Raid Details')">
+        </div>
+        <div class="name-section">
+            <h3>Primary</h3>
+            <ul class="name-list primary-list">
+                <!-- Primary names will be added here -->
+            </ul>
+        </div>
+        <div class="name-section">
+            <h3>Backups</h3>
+            <ul class="name-list backup-list">
+                <!-- Backup names will be added here -->
+            </ul>
+        </div>
+        <div class="add-remove-name">
+            <input type="text" class="name-input" placeholder="Enter a name" onkeyup="checkEnter(event, 'earlyRaid')">
+            <div class="add-remove-buttons">
+                <button class="add-button" onclick="addName('earlyRaid')">Add Name</button>
+            </div>
+        </div>
+    </div>
+    <div id="lateRaid" class="tab-content">
+        <h2>Late Raid Details</h2>
+        <div class="suggested-time">
+            <label for="lateRaidTime">Suggested Start Time:</label>
+            <input type="datetime-local" id="lateRaidTime" onchange="updateSelectedTime('lateRaidTime', 'Late Raid Details')">
+        </div>
+        <div class="name-section">
+            <h3>Primary</h3>
+            <ul class="name-list primary-list">
+                <!-- Primary names will be added here -->
+            </ul>
+        </div>
+        <div class="name-section">
+            <h3>Backups</h3>
+            <ul class="name-list backup-list">
+                <!-- Backup names will be added here -->
+            </ul>
+        </div>
+        <div class="add-remove-name">
+            <input type="text" class="name-input" placeholder="Enter a name" onkeyup="checkEnter(event, 'lateRaid')">
+            <div class="add-remove-buttons">
+                <button class="add-button" onclick="addName('lateRaid')">Add Name</button>
+            </div>
+        </div>
+    </div>
+    <div id="sundayRaid" class="tab-content">
+        <h2>Sunday Raid Details</h2>
+        <div class="suggested-time">
+            <label for="sundayRaidTime">Suggested Start Time:</label>
+            <input type="datetime-local" id="sundayRaidTime" onchange="updateSelectedTime('sundayRaidTime', 'Sunday Raid Details')">
+        </div>
+        <div class="name-section">
+            <h3>Primary</h3>
+            <ul class="name-list primary-list">
+                <!-- Primary names will be added here -->
+            </ul>
+        </div>
+        <div class="name-section">
+            <h3>Backups</h3>
+            <ul class="name-list backup-list">
+                <!-- Backup names will be added here -->
+            </ul>
+        </div>
+        <div class="add-remove-name">
+            <input type="text" class="name-input" placeholder="Enter a name" onkeyup="checkEnter(event, 'sundayRaid')">
+            <div class="add-remove-buttons">
+                <button class="add-button" onclick="addName('sundayRaid')">Add Name</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedTime = "";
+
+        function showTab(tabId) {
+            // Hide all tab content
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Show the selected tab content
+            const selectedTab = document.getElementById(tabId);
+            selectedTab.classList.add('active');
+        }
+
+        function addName(tabId) {
+            const nameInput = document.querySelector(`#${tabId} .name-input`);
+            const nameList = document.querySelector(`#${tabId} .name-list`);
+            const name = nameInput.value.trim();
+
+            if (name) {
+                const listItem = document.createElement('li');
+                listItem.textContent = name;
+                
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'Remove';
+                removeButton.className = 'remove-button';
+                removeButton.onclick = () => {
+                    listItem.remove();
+                };
+
+                listItem.appendChild(removeButton);
+
+                // Check if the list has more than 6 items
+                if (nameList.children.length < 6) {
+                    nameList.appendChild(listItem);
+                } else {
+                    const backupList = document.querySelector(`#${tabId} .backup-list`);
+                    backupList.appendChild(listItem);
+                }
+
+                nameInput.value = '';
+            }
+        }
+
+        function checkEnter(event, tabId) {
+            if (event.key === "Enter") {
+                addName(tabId);
+            }
+        }
+
+        function updateSelectedTime(inputId, details) {
+            const input = document.getElementById(inputId);
+            const time = input.value;
+            const formattedTime = new Date(time).toLocaleString();
+
+            selectedTime = `${details} (${formattedTime})`;
+            document.getElementById("selectedTime").textContent = selectedTime;
+        }
+    </script>
+</body>
+</html>
