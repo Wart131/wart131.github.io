@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D2 Scheduler</title>
+    <style>
+        /* Base Styles */
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            font-size: 36px;
+            margin-top: 20px;
+        }
+
+        /* Background Image */
+        .background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Button Styles */
+        .button {
+            background-color: rgba(128, 128, 128, 0.8);
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 15px 30px;
+            font-size: 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .button[disabled] {
+            background-color: rgba(128, 128, 128, 0.5);
+            cursor: not-allowed;
+        }
+
+        /* Pop-up Styles */
+        .popup-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+
+        .popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333;
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            padding: 20px;
+            z-index: 2;
+            width: 80%;
+            max-width: 400px;
+            text-align: left;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Event List Styles */
+        .event-list {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .event-list.active {
+            display: block;
+        }
+
+        .event-name {
+            background-color: rgba(128, 128, 128, 0.8);
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        /* Event Details Popup Styles */
+        .event-details-popup {
+            display: none;
+        }
+
+        .event-details-popup.active {
+            display: block;
+        }
+
+        .event-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .event-details {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Exit Button */
+        .exit-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+            border: none;
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <img src="https://d.newsweek.com/en/full/1507631/destiny-2-servers-down-cross-play.jpg" alt="Background Image" class="background-image">
+    <div class="header">
+        D2 Scheduler
+    </div>
+    <button class="button" id="createEventButton">Create Event</button>
+    <button class="button" id="eventListButton">Event List</button>
+
+    <!-- Create Event Popup -->
+    <div class="popup-container" id="createEventPopupContainer">
+        <div class="popup" id="createEventPopup">
+            <button class="exit-button" onclick="closePopup('createEventPopupContainer')">X</button>
+            <h2>Create Event</h2>
+            <label for="eventName">Event Name:</label>
+            <input type="text" id="eventName" required><br><br>
+            <label for="eventDateTime">Date & Time:</label>
+            <input type="datetime-local" id="eventDateTime" required><br><br>
+            <label for="primaryNames">Primary Players (up to 6, comma-separated):</label>
+            <input type="text" id="primaryNames" required><br><br>
+            <label for="backupNames">Backup Players (up to 3, comma-separated):</label>
+            <input type="text" id="backupNames" required><br><br>
+            <button class="button" id="saveEventButton" disabled>Save Event</button>
+            <div id="eventSavedMessage"></div>
+        </div>
+    </div>
+
+    <!-- Event List Page -->
+    <div class="event-list" id="eventList">
+        <!-- Event List will go here -->
+    </div>
+
+    <!-- Event Details Popup -->
+    <div class="popup-container" id="eventDetailsPopupContainer">
+        <div class="popup" id="eventDetailsPopup">
+            <button class="exit-button" onclick="closePopup('eventDetailsPopupContainer')">X</button>
+            <h2>Event Details</h2>
+            <div class="event-title" id="eventTitle"></div>
+            <div class="event-details" id="eventDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        const events = [];
+
+        const createEventButton = document.getElementById('createEventButton');
+        const eventListButton = document.getElementById('eventListButton');
+        const eventNameInput = document.getElementById('eventName');
+        const eventDateTimeInput = document.getElementById('eventDateTime');
+        const primaryNamesInput = document.getElementById('primaryNames');
+        const backupNamesInput = document.getElementById('backupNames');
+        const saveEventButton = document.getElementById('saveEventButton');
+        const createEventPopupContainer = document.getElementById('createEventPopupContainer');
+        const eventList = document.getElementById('eventList');
+        const eventDetailsPopupContainer = document.getElementById('eventDetailsPopupContainer');
+        const eventTitle = document.getElementById('eventTitle');
+        const eventDetails = document.getElementById('eventDetails');
+        const eventSavedMessage = document.getElementById('eventSavedMessage');
+
+        // Event Listeners
+        createEventButton.addEventListener('click', openCreateEventPopup);
+        eventListButton.addEventListener('click', showEventList);
+        eventNameInput.addEventListener('input', validateForm);
+        eventDateTimeInput.addEventListener('input', validateForm);
+        primaryNamesInput.addEventListener('input', validateForm);
+        backupNamesInput.addEventListener('input', validateForm);
+        saveEventButton.addEventListener('click', saveEvent);
+
+        // Functions
+        function openCreateEventPopup() {
+            createEventPopupContainer.style.display = 'block';
+        }
+
+        function showEventList() {
+            eventList.innerHTML = '';
+            eventDetailsPopupContainer.style.display = 'none';
+
+            if (events.length === 0) {
+                eventList.innerHTML = '<p>No events saved.</p>';
+            } else {
+                events.forEach((event, index) => {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.classList.add('event-name');
+                    eventDiv.textContent = event.eventName || `Event ${index + 1}`;
+                    eventDiv.addEventListener('click', () => showEventDetails(index));
+                    eventList.appendChild(eventDiv);
+                });
+            }
+
+            eventList.style.display = 'block';
+        }
+
+        function validateForm() {
+            const eventName = eventNameInput.value.trim();
+            const eventDateTime = eventDateTimeInput.value.trim();
+            const primaryNames = primaryNamesInput.value.split(',').map(name => name.trim());
+            const backupNames = backupNamesInput.value.split(',').map(name => name.trim());
+
+            const isFormValid = eventName.length > 0 &&
+                eventDateTime.length > 0 &&
+                primaryNames.length > 0 &&
+                primaryNames.length <= 6 &&
+                backupNames.length <= 3;
+
+            saveEventButton.disabled = !isFormValid;
+        }
+
+        function saveEvent() {
+            const eventName = eventNameInput.value.trim();
+            const eventDateTime = eventDateTimeInput.value.trim();
+            const primaryNames = primaryNamesInput.value.split(',').map(name => name.trim());
+            const backupNames = backupNamesInput.value.split(',').map(name => name.trim());
+
+            const event = {
+                eventName,
+                eventDateTime,
+                primaryNames,
+                backupNames,
+            };
+
+            events.push(event);
+
+            eventNameInput.value = '';
+            eventDateTimeInput.value = '';
+            primaryNamesInput.value = '';
+            backupNamesInput.value = '';
+            saveEventButton.disabled = true;
+
+            eventSavedMessage.textContent = 'Event Saved!';
+            setTimeout(() => {
+                eventSavedMessage.textContent = '';
+                createEventPopupContainer.style.display = 'none';
+            }, 2000);
+        }
+
+        function showEventDetails(index) {
+    const event = events[index];
+
+    eventTitle.textContent = event.eventName || `Event ${index + 1}`;
+    eventDetails.innerHTML = `
+        <p>Date & Time: ${formatTime(event.eventDateTime)}</p>
+        <p>Primary Players: ${event.primaryNames.join(', ')}</p>
+        <p>Backup Players: ${event.backupNames.join(', ')}</p>
+    `;
+
+    const editButton = document.createElement('button');
+    editButton.textContent = 'Edit';
+    editButton.classList.add('button');
+    editButton.addEventListener('click', () => editEvent(index));
+    
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Delete';
+    deleteButton.classList.add('button');
+    deleteButton.addEventListener('click', () => deleteEvent(index));
+
+    eventDetails.appendChild(editButton);
+    eventDetails.appendChild(deleteButton);
+
+    eventDetailsPopupContainer.style.display = 'block';
+        }
+
+        function closePopup(popupId) {
+            const popupContainer = document.getElementById(popupId);
+            popupContainer.style.display = 'none';
+        }
+
+        function formatTime(dateTimeStr) {
+            const dateTime = new Date(dateTimeStr);
+            const hours = dateTime.getHours();
+            const minutes = dateTime.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const formattedHours = hours % 12 || 12;
+            const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+            return `${formattedHours}:${formattedMinutes} ${ampm}`;
+        }
+function editEvent(index) {
+    const event = events[index];
+
+    eventNameInput.value = event.eventName || '';
+    eventDateTimeInput.value = event.eventDateTime || '';
+    primaryNamesInput.value = event.primaryNames.join(', ') || '';
+    backupNamesInput.value = event.backupNames.join(', ') || '';
+
+    // Remove the event from the array
+    events.splice(index, 1);
+
+    // Hide the event details popup
+    eventDetailsPopupContainer.style.display = 'none';
+
+    // Show the create event popup
+    createEventPopupContainer.style.display = 'block';
+}
+
+function deleteEvent(index) {
+    // Remove the event from the array
+    events.splice(index, 1);
+
+    // Hide the event details popup
+    eventDetailsPopupContainer.style.display = 'none';
+
+    // Show the event list
+    showEventList();
+}
+
+    </script>
+</body>
+</html>
