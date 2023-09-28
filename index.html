@@ -6,16 +6,13 @@
     <title>D2 Scheduler</title>
     <style>
         /* Base Styles */
-    body {
+        body {
             background-color: #000;
             color: #fff;
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 0;
             padding: 0;
-            background-image: url('https://d.newsweek.com/en/full/1507631/destiny-2-servers-down-cross-play.jpg');
-            background-size: cover; /* Add this line */
-            background-attachment: fixed; /* Optional: Prevents scrolling on mobile */
         }
 
         .header {
@@ -26,12 +23,12 @@
         /* Background Image */
         .background-image {
             position: fixed;
-            size: cover;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
+            object-fit: cover; /* Prevent background image from compressing on mobile */
         }
 
         /* Button Styles */
@@ -138,6 +135,52 @@
             cursor: pointer;
         }
 
+        /* Sign-up Button */
+        .signup-button {
+            background-color: #4CAF50;
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: block;
+        }
+
+        /* Delete Button */
+        .delete-button {
+            background-color: #FF0000;
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: block;
+        }
+
+        .event-thumbnail {
+            border-radius: 10px;
+            margin: 10px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .event-thumbnail-full {
+            border: 2px solid green;
+        }
+
+        .event-thumbnail-below-max {
+            border: 2px solid yellow;
+        }
+
+        .event-thumbnail-missing {
+            border: 2px solid red;
+        }
+
     </style>
 </head>
 <body>
@@ -146,7 +189,7 @@
         D2 Scheduler
     </div>
     <button class="button" id="createEventButton">Create Event</button>
-    <button class="button" id="eventListButton">Event List</button>
+    <button class="button" id="refreshEventListButton">Refresh Event List</button>
 
     <!-- Create Event Popup -->
     <div class="popup-container" id="createEventPopupContainer">
@@ -155,6 +198,14 @@
             <h2>Create Event</h2>
             <label for="eventName">Event Name:</label>
             <input type="text" id="eventName" required><br><br>
+            <label for="activityType">Activity Type:</label>
+            <select id="activityType" required>
+                <option value="Raid">Raid</option>
+                <option value="Nightfall">Nightfall</option>
+                <option value="Trials">Trials</option>
+                <option value="Legendary Story Missions">Legendary Story Missions</option>
+                <option value="Seasonal Activities">Seasonal Activities</option>
+            </select><br><br>
             <label for="eventDateTime">Date & Time:</label>
             <input type="datetime-local" id="eventDateTime" required><br><br>
             <label for="primaryNames">Primary Players (up to 6, comma-separated):</label>
@@ -178,6 +229,24 @@
             <h2>Event Details</h2>
             <div class="event-title" id="eventTitle"></div>
             <div class="event-details" id="eventDetails"></div>
+            <button class="signup-button" id="signUpButton" onclick="openSignUpPopup()">Sign Up</button>
+            <button class="delete-button" id="deleteButton" onclick="deleteEvent()">Delete Event</button>
+        </div>
+    </div>
+
+    <!-- Sign Up Popup -->
+    <div class="popup-container" id="signUpPopupContainer">
+        <div class="popup" id="signUpPopup">
+            <button class="exit-button" onclick="closePopup('signUpPopupContainer')">X</button>
+            <h2>Sign Up</h2>
+            <div class="event-title" id="signUpEventTitle"></div>
+            <input type="text" id="playerNameInput" placeholder="Player Name" required>
+            <label for="primaryRadio">Primary Player</label>
+            <input type="radio" id="primaryRadio" name="playerType" value="primary" checked>
+            <label for="backupRadio">Backup Player</label>
+            <input type="radio" id="backupRadio" name="playerType" value="backup">
+            <button class="button" id="signUpSaveButton" disabled onclick="signUp()">Save</button>
+            <div id="playerSignedUpMessage"></div>
         </div>
     </div>
 
@@ -185,8 +254,9 @@
         const events = [];
 
         const createEventButton = document.getElementById('createEventButton');
-        const eventListButton = document.getElementById('eventListButton');
+        const refreshEventListButton = document.getElementById('refreshEventListButton');
         const eventNameInput = document.getElementById('eventName');
+        const activityTypeInput = document.getElementById('activityType');
         const eventDateTimeInput = document.getElementById('eventDateTime');
         const primaryNamesInput = document.getElementById('primaryNames');
         const backupNamesInput = document.getElementById('backupNames');
@@ -196,16 +266,30 @@
         const eventDetailsPopupContainer = document.getElementById('eventDetailsPopupContainer');
         const eventTitle = document.getElementById('eventTitle');
         const eventDetails = document.getElementById('eventDetails');
-        const eventSavedMessage = document.getElementById('eventSavedMessage');
+        const signUpPopupContainer = document.getElementById('signUpPopupContainer');
+        const signUpEventTitle = document.getElementById('signUpEventTitle');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const primaryRadio = document.getElementById('primaryRadio');
+        const backupRadio = document.getElementById('backupRadio');
+        const signUpSaveButton = document.getElementById('signUpSaveButton');
+        const playerSignedUpMessage = document.getElementById('playerSignedUpMessage');
+        const signUpButton = document.getElementById('signUpButton');
+        const deleteButton = document.getElementById('deleteButton');
 
         // Event Listeners
         createEventButton.addEventListener('click', openCreateEventPopup);
-        eventListButton.addEventListener('click', showEventList);
+        refreshEventListButton.addEventListener('click', showEventList);
         eventNameInput.addEventListener('input', validateForm);
+        activityTypeInput.addEventListener('change', validateForm);
         eventDateTimeInput.addEventListener('input', validateForm);
         primaryNamesInput.addEventListener('input', validateForm);
         backupNamesInput.addEventListener('input', validateForm);
         saveEventButton.addEventListener('click', saveEvent);
+        playerNameInput.addEventListener('input', validateSignUpForm);
+        primaryRadio.addEventListener('change', validateSignUpForm);
+        backupRadio.addEventListener('change', validateSignUpForm);
+        signUpSaveButton.addEventListener('click', signUp);
+        signUpButton.addEventListener('click', openSignUpPopup);
 
         // Functions
         function openCreateEventPopup() {
@@ -221,7 +305,10 @@
             } else {
                 events.forEach((event, index) => {
                     const eventDiv = document.createElement('div');
-                    eventDiv.classList.add('event-name');
+                    eventDiv.classList.add('event-thumbnail');
+                    const isEventFull = event.activityType === 'Raid' ? event.primaryNames.length >= 6 : event.primaryNames.length >= 3;
+                    eventDiv.classList.add(isEventFull ? 'event-thumbnail-full' : 'event-thumbnail-below-max');
+
                     eventDiv.textContent = event.eventName || `Event ${index + 1}`;
                     eventDiv.addEventListener('click', () => showEventDetails(index));
                     eventList.appendChild(eventDiv);
@@ -233,14 +320,16 @@
 
         function validateForm() {
             const eventName = eventNameInput.value.trim();
+            const activityType = activityTypeInput.value;
             const eventDateTime = eventDateTimeInput.value.trim();
             const primaryNames = primaryNamesInput.value.split(',').map(name => name.trim());
             const backupNames = backupNamesInput.value.split(',').map(name => name.trim());
 
             const isFormValid = eventName.length > 0 &&
+                activityType.length > 0 &&
                 eventDateTime.length > 0 &&
                 primaryNames.length > 0 &&
-                primaryNames.length <= 6 &&
+                (activityType === 'Raid' ? primaryNames.length <= 6 : primaryNames.length <= 3) &&
                 backupNames.length <= 3;
 
             saveEventButton.disabled = !isFormValid;
@@ -248,12 +337,14 @@
 
         function saveEvent() {
             const eventName = eventNameInput.value.trim();
+            const activityType = activityTypeInput.value;
             const eventDateTime = eventDateTimeInput.value.trim();
             const primaryNames = primaryNamesInput.value.split(',').map(name => name.trim());
             const backupNames = backupNamesInput.value.split(',').map(name => name.trim());
 
             const event = {
                 eventName,
+                activityType,
                 eventDateTime,
                 primaryNames,
                 backupNames,
@@ -262,6 +353,7 @@
             events.push(event);
 
             eventNameInput.value = '';
+            activityTypeInput.value = 'Raid';
             eventDateTimeInput.value = '';
             primaryNamesInput.value = '';
             backupNamesInput.value = '';
@@ -275,29 +367,30 @@
         }
 
         function showEventDetails(index) {
-    const event = events[index];
+            const event = events[index];
 
-    eventTitle.textContent = event.eventName || `Event ${index + 1}`;
-    eventDetails.innerHTML = `
-        <p>Date & Time: ${formatTime(event.eventDateTime)}</p>
-        <p>Primary Players: ${event.primaryNames.join(', ')}</p>
-        <p>Backup Players: ${event.backupNames.join(', ')}</p>
-    `;
+            eventTitle.textContent = event.eventName || `Event ${index + 1}`;
+            eventDetails.innerHTML = `
+                <p>Activity Type: ${event.activityType}</p>
+                <p>Date & Time: ${formatTime(event.eventDateTime)}</p>
+                <p>Primary Players: ${event.primaryNames.join(', ')}</p>
+                <p>Backup Players: ${event.backupNames.join(', ')}</p>
+            `;
 
-    const editButton = document.createElement('button');
-    editButton.textContent = 'Edit';
-    editButton.classList.add('button');
-    editButton.addEventListener('click', () => editEvent(index));
-    
-    const deleteButton = document.createElement('button');
-    deleteButton.textContent = 'Delete';
-    deleteButton.classList.add('button');
-    deleteButton.addEventListener('click', () => deleteEvent(index));
+            const isEventFull = event.activityType === 'Raid' ? event.primaryNames.length >= 6 : event.primaryNames.length >= 3;
+            signUpButton.style.display = isEventFull ? 'none' : 'block';
+            signUpButton.disabled = isEventFull;
 
-    eventDetails.appendChild(editButton);
-    eventDetails.appendChild(deleteButton);
+            deleteButton.style.display = 'block';
 
-    eventDetailsPopupContainer.style.display = 'block';
+            // Set border color based on event status
+            eventDetailsPopup.style.border = isEventFull ? '2px solid green' : event.primaryNames.length > 0 ? '2px solid yellow' : '2px solid red';
+
+            eventDetailsPopupContainer.style.display = 'block';
+        }
+
+        function openSignUpPopup() {
+            signUpPopupContainer.style.display = 'block';
         }
 
         function closePopup(popupId) {
@@ -314,35 +407,48 @@
             const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
             return `${formattedHours}:${formattedMinutes} ${ampm}`;
         }
-function editEvent(index) {
-    const event = events[index];
 
-    eventNameInput.value = event.eventName || '';
-    eventDateTimeInput.value = event.eventDateTime || '';
-    primaryNamesInput.value = event.primaryNames.join(', ') || '';
-    backupNamesInput.value = event.backupNames.join(', ') || '';
+        function validateSignUpForm() {
+            const playerName = playerNameInput.value.trim();
+            signUpSaveButton.disabled = playerName.length === 0;
+        }
 
-    // Remove the event from the array
-    events.splice(index, 1);
+        function signUp() {
+            const playerName = playerNameInput.value.trim();
+            const playerType = primaryRadio.checked ? 'Primary Player' : 'Backup Player';
+            const eventIndex = events.findIndex(event => event.eventName === eventTitle.textContent);
 
-    // Hide the event details popup
-    eventDetailsPopupContainer.style.display = 'none';
+            if (eventIndex !== -1) {
+                const event = events[eventIndex];
+                if (playerType === 'Primary Player') {
+                    event.primaryNames.push(playerName);
+                } else {
+                    event.backupNames.push(playerName);
+                }
+                playerSignedUpMessage.textContent = `You have been signed up as a ${playerType} for this event.`;
+                signUpButton.style.display = 'none';
+                signUpPopupContainer.style.display = 'none';
+                showEventDetails(eventIndex);
+            }
+        }
 
-    // Show the create event popup
-    createEventPopupContainer.style.display = 'block';
-}
+        function deleteEvent() {
+            const eventIndex = events.findIndex(event => event.eventName === eventTitle.textContent);
 
-function deleteEvent(index) {
-    // Remove the event from the array
-    events.splice(index, 1);
+            if (eventIndex !== -1) {
+                events.splice(eventIndex, 1);
+                eventDetailsPopupContainer.style.display = 'none';
+                showEventList();
+            }
+        }
 
-    // Hide the event details popup
-    eventDetailsPopupContainer.style.display = 'none';
+        function init() {
+            showEventList();
+        }
 
-    // Show the event list
-    showEventList();
-}
-
+        init();
     </script>
 </body>
 </html>
+
+ 
